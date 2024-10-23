@@ -21,7 +21,6 @@ float cospif (float);
 float erfcf (float);
 float erff (float);
 float erfinvf (float);
-float exp10f (float);
 float expm1f (float);
 float log10f (float);
 float log1pf (float);
@@ -29,6 +28,9 @@ float sinhf (float);
 float sinpif (float);
 float tanf (float);
 float tanhf (float);
+float tanpif (float);
+void sincospif (float, float *, float *);
+void sincospi (double, double *, double *);
 
 double acos (double);
 double acosh (double);
@@ -42,20 +44,21 @@ double cosh (double);
 double cospi (double);
 double erfc (double);
 double erfinv (double);
-double exp10 (double);
 double expm1 (double);
 double log10 (double);
 double log1p (double);
 double sinh (double);
 double sinpi (double);
 double tanh (double);
+double tanpi (double);
 
 long double cospil (long double);
 long double erfinvl (long double);
 long double exp10l (long double);
 long double sinpil (long double);
+long double tanpil (long double);
 
-#if __aarch64__
+#if __aarch64__ && __linux__
 # if __GNUC__ >= 5
 typedef __Float32x4_t __f32x4_t;
 typedef __Float64x2_t __f64x2_t;
@@ -121,6 +124,8 @@ __vpcs __f32x4_t _ZGVnN4v_log1pf (__f32x4_t);
 __vpcs __f64x2_t _ZGVnN2v_log1p (__f64x2_t);
 __vpcs __f32x4_t _ZGVnN4v_log2f (__f32x4_t);
 __vpcs __f64x2_t _ZGVnN2v_log2 (__f64x2_t);
+__vpcs __f32x4_t _ZGVnN4vl4_modff (__f32x4_t, __f32x4_t *);
+__vpcs __f64x2_t _ZGVnN2vl8_modf (__f64x2_t, __f64x2_t *);
 __vpcs __f64x2_t _ZGVnN2vv_pow (__f64x2_t, __f64x2_t);
 __vpcs __f32x4_t _ZGVnN4v_sinhf (__f32x4_t);
 __vpcs __f64x2_t _ZGVnN2v_sinh (__f64x2_t);
@@ -130,8 +135,11 @@ __vpcs __f32x4_t _ZGVnN4v_tanf (__f32x4_t);
 __vpcs __f64x2_t _ZGVnN2v_tan (__f64x2_t);
 __vpcs __f32x4_t _ZGVnN4v_tanhf (__f32x4_t);
 __vpcs __f64x2_t _ZGVnN2v_tanh (__f64x2_t);
+__vpcs __f32x4_t _ZGVnN4v_tanpif (__f32x4_t);
 __vpcs void _ZGVnN4vl4l4_sincosf (__f32x4_t, __f32x4_t *, __f32x4_t *);
 __vpcs void _ZGVnN2vl8l8_sincos (__f64x2_t, __f64x2_t *, __f64x2_t *);
+__vpcs void _ZGVnN4vl4l4_sincospif (__f32x4_t, __f32x4_t *, __f32x4_t *);
+__vpcs void _ZGVnN2vl8l8_sincospi (__f64x2_t, __f64x2_t *, __f64x2_t *);
 
 # endif
 
@@ -185,6 +193,8 @@ svfloat32_t _ZGVsMxv_log1pf (svfloat32_t, svbool_t);
 svfloat64_t _ZGVsMxv_log1p (svfloat64_t, svbool_t);
 svfloat32_t _ZGVsMxv_log2f (svfloat32_t, svbool_t);
 svfloat64_t _ZGVsMxv_log2 (svfloat64_t, svbool_t);
+svfloat32_t _ZGVsMxvl4_modff (svfloat32_t, float *, svbool_t);
+svfloat64_t _ZGVsMxvl8_modf (svfloat64_t, double *, svbool_t);
 svfloat32_t _ZGVsMxvv_powi (svfloat32_t, svint32_t, svbool_t);
 svfloat64_t _ZGVsMxvv_powk (svfloat64_t, svint64_t, svbool_t);
 svfloat32_t _ZGVsMxvv_powf (svfloat32_t, svfloat32_t, svbool_t);
@@ -201,8 +211,10 @@ svfloat32_t _ZGVsMxv_tanf (svfloat32_t, svbool_t);
 svfloat64_t _ZGVsMxv_tan (svfloat64_t, svbool_t);
 void _ZGVsMxvl4l4_sincosf (svfloat32_t, float *, float *, svbool_t);
 void _ZGVsMxvl8l8_sincos (svfloat64_t, double *, double *, svbool_t);
-# endif
+void _ZGVsMxvl4l4_sincospif (svfloat32_t, float *, float *, svbool_t);
+void _ZGVsMxvl8l8_sincospi (svfloat64_t, double *, double *, svbool_t);
+#  endif
 
-#endif
+# endif
 
 #endif

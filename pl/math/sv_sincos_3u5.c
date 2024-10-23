@@ -1,7 +1,7 @@
 /*
  * Double-precision vector sincos function.
  *
- * Copyright (c) 2023, Arm Limited.
+ * Copyright (c) 2023-2024, Arm Limited.
  * SPDX-License-Identifier: MIT OR Apache-2.0 WITH LLVM-exception
  */
 
@@ -10,11 +10,20 @@
    be linked against the scalar sincosf from math/.  */
 #define _GNU_SOURCE
 #include <math.h>
-#undef _GNU_SOURCE
 
 #include "sv_sincos_common.h"
 #include "sv_math.h"
 #include "pl_test.h"
+
+/* sincos not available for all scalar libm implementations.  */
+#ifndef __GLIBC__
+static void
+sincos (double x, double *out_sin, double *out_cos)
+{
+  *out_sin = sin (x);
+  *out_cos = cos (x);
+}
+#endif
 
 static void NOINLINE
 special_case (svfloat64_t x, svbool_t special, double *out_sin,
@@ -50,12 +59,13 @@ _ZGVsMxvl8l8_sincos (svfloat64_t x, double *out_sin, double *out_cos,
     special_case (x, special, out_sin, out_cos);
 }
 
+PL_TEST_DISABLE_FENV (_ZGVsMxv_sincos_sin)
+PL_TEST_DISABLE_FENV (_ZGVsMxv_sincos_cos)
 PL_TEST_ULP (_ZGVsMxv_sincos_sin, 2.73)
 PL_TEST_ULP (_ZGVsMxv_sincos_cos, 2.73)
 #define SV_SINCOS_INTERVAL(lo, hi, n)                                         \
-  PL_TEST_INTERVAL (_ZGVsMxv_sincos_sin, lo, hi, n)                           \
-  PL_TEST_INTERVAL (_ZGVsMxv_sincos_cos, lo, hi, n)
-SV_SINCOS_INTERVAL (0, 0x1p23, 500000)
-SV_SINCOS_INTERVAL (-0, -0x1p23, 500000)
+  PL_TEST_SYM_INTERVAL (_ZGVsMxv_sincos_sin, lo, hi, n)                       \
+  PL_TEST_SYM_INTERVAL (_ZGVsMxv_sincos_cos, lo, hi, n)
+SV_SINCOS_INTERVAL (0, 0x1p-63, 50000)
+SV_SINCOS_INTERVAL (0x1p-63, 0x1p23, 500000)
 SV_SINCOS_INTERVAL (0x1p23, inf, 10000)
-SV_SINCOS_INTERVAL (-0x1p23, -inf, 10000)

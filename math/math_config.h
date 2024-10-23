@@ -1,7 +1,7 @@
 /*
  * Configuration for math routines.
  *
- * Copyright (c) 2017-2023, Arm Limited.
+ * Copyright (c) 2017-2024, Arm Limited.
  * SPDX-License-Identifier: MIT OR Apache-2.0 WITH LLVM-exception
  */
 
@@ -13,9 +13,9 @@
 
 #ifndef WANT_ROUNDING
 /* If defined to 1, return correct results for special cases in non-nearest
-   rounding modes (logf (1.0f) returns 0.0f with FE_DOWNWARD rather than -0.0f).
-   This may be set to 0 if there is no fenv support or if math functions only
-   get called in round to nearest mode.  */
+   rounding modes (logf (1.0f) returns 0.0f with FE_DOWNWARD rather than
+   -0.0f). This may be set to 0 if there is no fenv support or if math
+   functions only get called in round to nearest mode.  */
 # define WANT_ROUNDING 1
 #endif
 #ifndef WANT_ERRNO
@@ -131,6 +131,15 @@
 #define __erf_data arm_math_erf_data
 #define __v_exp_data arm_math_v_exp_data
 #define __v_log_data arm_math_v_log_data
+
+/* On some platforms (in particular Windows) INFINITY and HUGE_VAL might
+   be defined in such a way that might not produce the expected bit pattern,
+   therefore we enforce the glibc math.h definition using a builtin that is
+   supported in both gcc and clang.  */
+#if defined (_WIN32) && (defined (__GNUC__) || defined (__clang__))
+# undef INFINITY
+# define INFINITY __builtin_inff()
+#endif
 
 #if HAVE_FAST_ROUND
 /* When set, the roundtoint and converttoint functions are provided with
@@ -365,9 +374,9 @@ extern const struct exp2f_data
   uint64_t tab[1 << EXP2F_TABLE_BITS];
   double shift_scaled;
   double poly[EXP2F_POLY_ORDER];
-  double shift;
   double invln2_scaled;
   double poly_scaled[EXP2F_POLY_ORDER];
+  double shift;
 } __exp2f_data HIDDEN;
 
 #define LOGF_TABLE_BITS 4
@@ -427,15 +436,17 @@ extern const struct powf_log2_data
 extern const struct exp_data
 {
   double invln2N;
-  double invlog10_2N;
-  double shift;
   double negln2hiN;
   double negln2loN;
-  double neglog10_2hiN;
-  double neglog10_2loN;
   double poly[4]; /* Last four coefficients.  */
+  double shift;
+
   double exp2_shift;
   double exp2_poly[EXP2_POLY_ORDER];
+
+  double invlog10_2N;
+  double neglog10_2hiN;
+  double neglog10_2loN;
   double exp10_poly[5];
   uint64_t tab[2*(1 << EXP_TABLE_BITS)];
 } __exp_data HIDDEN;

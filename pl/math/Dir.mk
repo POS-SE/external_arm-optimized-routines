@@ -3,6 +3,21 @@
 # Copyright (c) 2019-2024, Arm Limited.
 # SPDX-License-Identifier: MIT OR Apache-2.0 WITH LLVM-exception
 
+ifneq ($(OS),Linux)
+  ifeq ($(WANT_SIMD_EXCEPT),1)
+    $(error WANT_SIMD_EXCEPT is not supported outside Linux)
+  endif
+  ifeq ($(WANT_SVE_MATH),1)
+    $(error WANT_SVE_MATH is not supported outside Linux)
+  endif
+  ifneq ($(USE_MPFR),1)
+    $(warning WARNING: Double-precision ULP tests will not be usable without MPFR)
+  endif
+  ifeq ($(USE_GLIBC_ABI),1)
+    $(error Can only generate special GLIBC symbols on Linux - please disable USE_GLIBC_ABI)
+  endif
+endif
+
 PLM := $(srcdir)/pl/math
 AOR := $(srcdir)/math
 B := build/pl/math
@@ -11,6 +26,12 @@ pl-lib-srcs := $(wildcard $(PLM)/*.[cS])
 
 ifeq ($(WANT_SVE_MATH), 0)
 pl-lib-srcs := $(filter-out $(PLM)/sv_%, $(pl-lib-srcs))
+endif
+
+ifneq ($(OS),Linux)
+# Disable all vector symbols if not on Linux
+pl-lib-srcs := $(filter-out $(PLM)/sv_%, $(pl-lib-srcs))
+pl-lib-srcs := $(filter-out $(PLM)/v_%, $(pl-lib-srcs))
 endif
 
 math-test-srcs := \
@@ -32,7 +53,7 @@ math-tools := \
 	build/pl/bin/mathbench \
 	build/pl/bin/mathbench_libc \
 	build/pl/bin/runulp.sh \
-	build/pl/bin/ulp \
+	build/pl/bin/ulp
 
 math-host-tools := \
 	build/pl/bin/rtest \
@@ -74,6 +95,8 @@ ulp-wrappers = $(patsubst $(PLM)/%,$(ulp-wrappers-dir)%,$(basename $(pl-lib-srcs
 mathbench-funcs = $(patsubst $(PLM)/%,$(mathbench-funcs-dir)%,$(basename $(pl-lib-srcs)))
 plsig-autogen-files = $(ulp-funcs) $(ulp-wrappers) $(mathbench-funcs)
 
+$(plsig-autogen-files): CFLAGS_PL += -DWANT_TRIGPI_TESTS=$(WANT_TRIGPI_TESTS)
+
 $(ulp-funcs): PLSIG_DIRECTIVE = EMIT_ULP_FUNCS
 $(ulp-wrappers): PLSIG_DIRECTIVE = EMIT_ULP_WRAPPERS
 $(mathbench-funcs): PLSIG_DIRECTIVE = EMIT_MATHBENCH_FUNCS
@@ -105,10 +128,14 @@ build/pl/lib/libmathlib.a: $(pl-lib-objs)
 	$(AR) rc $@ $^
 	$(RANLIB) $@
 
-$(math-host-tools): HOST_LDLIBS += -lm -lmpfr -lmpc
-$(math-tools): LDLIBS += $(math-ldlibs) -lm
+$(math-host-tools): HOST_LDLIBS += $(libm-libs) $(mpfr-libs) $(mpc-libs)
+$(math-tools): LDLIBS += $(math-ldlibs) $(libm-libs)
+
 # math-sve-cflags should be empty if WANT_SVE_MATH is not enabled
 $(math-tools): CFLAGS_PL += $(math-sve-cflags)
+ifneq ($(OS),Darwin)
+  $(math-tools): LDFLAGS += -static
+endif
 
 # Some targets to build pl/math/test from math/test sources
 build/pl/math/test/%.o: $(srcdir)/math/test/%.S
@@ -140,17 +167,17 @@ build/pl/bin/rtest: $(math-host-objs)
 	$(HOST_CC) $(HOST_CFLAGS) $(HOST_LDFLAGS) -o $@ $^ $(HOST_LDLIBS)
 
 build/pl/bin/mathtest: $(B)/test/mathtest.o build/pl/lib/libmathlib.a
-	$(CC) $(CFLAGS_PL) $(LDFLAGS) -static -o $@ $^ $(LDLIBS)
+	$(CC) $(CFLAGS_PL) $(LDFLAGS) -o $@ $^ $(libm-libs)
 
 build/pl/bin/mathbench: $(B)/test/mathbench.o build/pl/lib/libmathlib.a
-	$(CC) $(CFLAGS_PL) $(LDFLAGS) -static -o $@ $^ $(LDLIBS)
+	$(CC) $(CFLAGS_PL) $(LDFLAGS) -o $@ $^ $(libm-libs)
 
 # This is not ideal, but allows custom symbols in mathbench to get resolved.
 build/pl/bin/mathbench_libc: $(B)/test/mathbench.o build/pl/lib/libmathlib.a
-	$(CC) $(CFLAGS_PL) $(LDFLAGS) -static -o $@ $< $(LDLIBS) -lc build/pl/lib/libmathlib.a -lm
+	$(CC) $(CFLAGS_PL) $(LDFLAGS) -o $@ $< $(libm-libs) $(libc-libs) build/pl/lib/libmathlib.a $(libm-libs)
 
 build/pl/bin/ulp: $(B)/test/ulp.o build/pl/lib/libmathlib.a
-	$(CC) $(CFLAGS_PL) $(LDFLAGS) -static -o $@ $^ $(LDLIBS)
+	$(CC) $(CFLAGS_PL) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 build/pl/include/%.h: $(PLM)/include/%.h
 	cp $< $@
@@ -186,7 +213,7 @@ $(ulp-input-dir)/%.ulp: $(PLM)/%.c | $(ulp-input-dir)
 	$(CC) -I$(PLM)/test $(CFLAGS_PL) $< -o - -E | { grep -o "PL_TEST_ULP [^ ]* [^ ]*" || true; } > $@
 
 $(ulp-input-dir)/%.fenv: $(PLM)/%.c | $(ulp-input-dir)
-	$(CC) -I$(PLM)/test $(CFLAGS_PL) $< -o - -E | { grep -o "PL_TEST_EXPECT_FENV_ENABLED [^ ]*" || true; } > $@
+	$(CC) -I$(PLM)/test $(CFLAGS_PL) $< -o - -E | { grep -o "PL_TEST_DISABLE_FENV [^ ]*" || true; } > $@
 
 $(ulp-input-dir)/%.itv: $(PLM)/%.c | $(ulp-input-dir)
 	$(CC) -I$(PLM)/test $(CFLAGS_PL) $< -o - -E | { grep "PL_TEST_INTERVAL " || true; } | sed "s/ PL_TEST_INTERVAL/\nPL_TEST_INTERVAL/g" > $@
@@ -197,7 +224,7 @@ $(ulp-lims): $(math-lib-lims)
 
 fenv-exps := $(ulp-input-dir)/fenv
 $(fenv-exps): $(math-lib-fenvs)
-	cat $^ | sed "s/PL_TEST_EXPECT_FENV_ENABLED //g;s/^ *//g" > $@
+	cat $^ | sed "s/PL_TEST_DISABLE_FENV //g;s/^ *//g" > $@
 
 ulp-itvs := $(ulp-input-dir)/intervals
 $(ulp-itvs): $(math-lib-itvs)
@@ -211,6 +238,7 @@ check-pl/math-ulp: $(math-tools) $(ulp-lims) $(fenv-exps) $(ulp-itvs)
 	FENV=../../../$(fenv-exps) \
 	FUNC=$(func) \
 	PRED=$(pred) \
+	USE_MPFR=$(USE_MPFR) \
 	build/pl/bin/runulp.sh $(EMULATOR)
 
 check-pl/math: check-pl/math-test check-pl/math-rtest check-pl/math-ulp

@@ -70,7 +70,7 @@
 #endif
 
 /* Symbol renames to avoid libc conflicts.  */
-#define __exp_data pl_math_exp_data
+#define __exp_data __pl_math_exp_data
 
 /* Optionally used extensions.  */
 #ifdef __GNUC__
@@ -121,6 +121,15 @@
 #define __math_check_uflow arm_math_check_uflow
 #define __math_check_oflowf arm_math_check_oflowf
 #define __math_check_uflowf arm_math_check_uflowf
+
+/* On some platforms (in particular Windows) INFINITY and HUGE_VAL might
+   be defined in such a way that might not produce the expected bit pattern,
+   therefore we enforce the glibc math.h definition using a builtin that is
+   supported in both gcc and clang.  */
+#if defined (_WIN32) && (defined (__GNUC__) || defined (__clang__))
+# undef INFINITY
+# define INFINITY __builtin_inff()
+#endif
 
 #if HAVE_FAST_ROUND
 /* When set, the roundtoint and converttoint functions are provided with
