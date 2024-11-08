@@ -1,20 +1,19 @@
 /*
  * Single-precision cbrt(x) function.
  *
- * Copyright (c) 2022-2023, Arm Limited.
+ * Copyright (c) 2022-2024, Arm Limited.
  * SPDX-License-Identifier: MIT OR Apache-2.0 WITH LLVM-exception
  */
 
-#include "estrinf.h"
+#include "poly_scalar_f32.h"
 #include "math_config.h"
-#include "pl_sig.h"
-#include "pl_test.h"
+#include "test_sig.h"
+#include "test_defs.h"
 
 #define AbsMask 0x7fffffff
 #define SignMask 0x80000000
 #define TwoThirds 0x1.555556p-1f
 
-#define C(i) __cbrtf_data.poly[i]
 #define T(i) __cbrtf_data.table[i]
 
 /* Approximation for single-precision cbrt(x), using low-order polynomial and
@@ -41,7 +40,8 @@ cbrtf (float x)
   /* p is a rough approximation for cbrt(m) in [0.5, 1.0]. The better this is,
      the less accurate the next stage of the algorithm needs to be. An order-4
      polynomial is enough for one Newton iteration.  */
-  float p = ESTRIN_3 (m, m * m, C);
+  float p = pairwise_poly_3_f32 (m, m * m, __cbrtf_data.poly);
+
   /* One iteration of Newton's method for iteratively approximating cbrt.  */
   float m_by_3 = m / 3;
   float a = fmaf (TwoThirds, p, m_by_3 / (p * p));
@@ -61,7 +61,6 @@ cbrtf (float x)
   return asfloat (asuint (ldexpf (a * T (2 + e % 3), e / 3)) | sign);
 }
 
-PL_SIG (S, F, 1, cbrt, -10.0, 10.0)
-PL_TEST_ULP (cbrtf, 1.03)
-PL_TEST_INTERVAL (cbrtf, 0, inf, 1000000)
-PL_TEST_INTERVAL (cbrtf, -0, -inf, 1000000)
+TEST_SIG (S, F, 1, cbrt, -10.0, 10.0)
+TEST_ULP (cbrtf, 1.03)
+TEST_SYM_INTERVAL (cbrtf, 0, inf, 1000000)

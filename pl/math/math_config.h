@@ -1,7 +1,7 @@
 /*
  * Configuration for math routines.
  *
- * Copyright (c) 2017-2023, Arm Limited.
+ * Copyright (c) 2017-2024, Arm Limited.
  * SPDX-License-Identifier: MIT OR Apache-2.0 WITH LLVM-exception
  */
 
@@ -13,9 +13,9 @@
 
 #ifndef WANT_ROUNDING
 /* If defined to 1, return correct results for special cases in non-nearest
-   rounding modes (logf (1.0f) returns 0.0f with FE_DOWNWARD rather than -0.0f).
-   This may be set to 0 if there is no fenv support or if math functions only
-   get called in round to nearest mode.  */
+   rounding modes (logf (1.0f) returns 0.0f with FE_DOWNWARD rather than
+   -0.0f). This may be set to 0 if there is no fenv support or if math
+   functions only get called in round to nearest mode.  */
 # define WANT_ROUNDING 1
 #endif
 #ifndef WANT_ERRNO
@@ -27,33 +27,34 @@
 #ifndef WANT_SIMD_EXCEPT
 /* If defined to 1, trigger fp exceptions in vector routines, consistently with
    behaviour expected from the corresponding scalar routine.  */
-#define WANT_SIMD_EXCEPT 0
+# define WANT_SIMD_EXCEPT 0
 #endif
 
 /* Compiler can inline round as a single instruction.  */
 #ifndef HAVE_FAST_ROUND
 # if __aarch64__
-#   define HAVE_FAST_ROUND 1
+#  define HAVE_FAST_ROUND 1
 # else
-#   define HAVE_FAST_ROUND 0
+#  define HAVE_FAST_ROUND 0
 # endif
 #endif
 
 /* Compiler can inline lround, but not (long)round(x).  */
 #ifndef HAVE_FAST_LROUND
-# if __aarch64__ && (100*__GNUC__ + __GNUC_MINOR__) >= 408 && __NO_MATH_ERRNO__
-#   define HAVE_FAST_LROUND 1
+# if __aarch64__ && (100 * __GNUC__ + __GNUC_MINOR__) >= 408                 \
+      && __NO_MATH_ERRNO__
+#  define HAVE_FAST_LROUND 1
 # else
-#   define HAVE_FAST_LROUND 0
+#  define HAVE_FAST_LROUND 0
 # endif
 #endif
 
 /* Compiler can inline fma as a single instruction.  */
 #ifndef HAVE_FAST_FMA
 # if defined FP_FAST_FMA || __aarch64__
-#   define HAVE_FAST_FMA 1
+#  define HAVE_FAST_FMA 1
 # else
-#   define HAVE_FAST_FMA 0
+#  define HAVE_FAST_FMA 0
 # endif
 #endif
 
@@ -62,11 +63,35 @@
    to interpose math functions with both static and dynamic linking.  */
 #ifndef USE_GLIBC_ABI
 # if __GNUC__
-#   define USE_GLIBC_ABI 1
+#  define USE_GLIBC_ABI 1
 # else
-#   define USE_GLIBC_ABI 0
+#  define USE_GLIBC_ABI 0
 # endif
 #endif
+
+/* Symbol renames to avoid libc conflicts.  */
+#define __exp_data pl_math_exp_data
+#define __asin_poly pl_math_asin_poly
+#define __asinf_poly pl_math_asinf_poly
+#define __asinh_data pl_math_asinh_data
+#define __asinhf_data pl_math_asinhf_data
+#define __atan_poly_data pl_math_atan_poly_data
+#define __atanf_poly_data pl_math_atanf_poly_data
+#define __cbrt_data pl_math_cbrt_data
+#define __cbrtf_data pl_math_cbrtf_data
+#define __erf_data pl_math_erf_data
+#define __erfc_data pl_math_erfc_data
+#define __erfcf_data pl_math_erfcf_data
+#define __erff_data pl_math_erff_data
+#define __expf_data pl_math_expf_data
+#define __expm1_poly pl_math_expm1_poly
+#define __expm1f_poly pl_math_expm1f_poly
+#define __log10_data pl_math_log10_data
+#define __log1p_data pl_math_log1p_data
+#define __log1pf_data pl_math_log1pf_data
+#define __log_data pl_math_log_data
+#define __tanf_poly_data pl_math_tanf_poly_data
+#define __v_log_data pl_math_v_log_data
 
 /* Optionally used extensions.  */
 #ifdef __GNUC__
@@ -76,21 +101,55 @@
 # define likely(x) __builtin_expect (!!(x), 1)
 # define unlikely(x) __builtin_expect (x, 0)
 # if __GNUC__ >= 9
-#   define attribute_copy(f) __attribute__ ((copy (f)))
+#  define attribute_copy(f) __attribute__ ((copy (f)))
 # else
-#   define attribute_copy(f)
+#  define attribute_copy(f)
 # endif
-# define strong_alias(f, a) \
-  extern __typeof (f) a __attribute__ ((alias (#f))) attribute_copy (f);
-# define hidden_alias(f, a) \
-  extern __typeof (f) a __attribute__ ((alias (#f), visibility ("hidden"))) \
-  attribute_copy (f);
+# define strong_alias(f, a)                                                   \
+    extern __typeof (f) a __attribute__ ((alias (#f))) attribute_copy (f);
+# define hidden_alias(f, a)                                                   \
+    extern __typeof (f) a __attribute__ ((alias (#f), visibility ("hidden"))) \
+	attribute_copy (f);
 #else
 # define HIDDEN
 # define NOINLINE
 # define UNUSED
 # define likely(x) (x)
 # define unlikely(x) (x)
+#endif
+
+/* Return ptr but hide its value from the compiler so accesses through it
+   cannot be optimized based on the contents.  */
+#define ptr_barrier(ptr)                                                      \
+  ({                                                                          \
+    __typeof (ptr) __ptr = (ptr);                                             \
+    __asm("" : "+r"(__ptr));                                                  \
+    __ptr;                                                                    \
+  })
+
+/* Symbol renames to avoid libc conflicts.  */
+#define __math_oflowf arm_math_oflowf
+#define __math_uflowf arm_math_uflowf
+#define __math_may_uflowf arm_math_may_uflowf
+#define __math_divzerof arm_math_divzerof
+#define __math_oflow arm_math_oflow
+#define __math_uflow arm_math_uflow
+#define __math_may_uflow arm_math_may_uflow
+#define __math_divzero arm_math_divzero
+#define __math_invalidf arm_math_invalidf
+#define __math_invalid arm_math_invalid
+#define __math_check_oflow arm_math_check_oflow
+#define __math_check_uflow arm_math_check_uflow
+#define __math_check_oflowf arm_math_check_oflowf
+#define __math_check_uflowf arm_math_check_uflowf
+
+/* On some platforms (in particular Windows) INFINITY and HUGE_VAL might
+   be defined in such a way that might not produce the expected bit pattern,
+   therefore we enforce the glibc math.h definition using a builtin that is
+   supported in both gcc and clang.  */
+#if defined (_WIN32) && (defined (__GNUC__) || defined (__clang__))
+# undef INFINITY
+# define INFINITY __builtin_inff()
 #endif
 
 #if HAVE_FAST_ROUND
@@ -128,7 +187,7 @@ asuint (float f)
   {
     float f;
     uint32_t i;
-  } u = {f};
+  } u = { f };
   return u.i;
 }
 
@@ -139,7 +198,7 @@ asfloat (uint32_t i)
   {
     uint32_t i;
     float f;
-  } u = {i};
+  } u = { i };
   return u.f;
 }
 
@@ -150,7 +209,7 @@ asuint64 (double f)
   {
     double f;
     uint64_t i;
-  } u = {f};
+  } u = { f };
   return u.i;
 }
 
@@ -161,7 +220,7 @@ asdouble (uint64_t i)
   {
     uint64_t i;
     double f;
-  } u = {i};
+  } u = { i };
   return u.f;
 }
 
@@ -320,9 +379,19 @@ check_uflowf (float x)
 
 extern const struct erff_data
 {
-  float erff_poly_A[6];
-  float erff_poly_B[7];
+  struct
+  {
+    float erf, scale;
+  } tab[513];
 } __erff_data HIDDEN;
+
+extern const struct erfcf_data
+{
+  struct
+  {
+    float erfc, scale;
+  } tab[645];
+} __erfcf_data HIDDEN;
 
 /* Data for logf and log10f.  */
 #define LOGF_TABLE_BITS 4
@@ -349,9 +418,15 @@ extern const struct log10_data
   double invln10;
   double poly[LOG10_POLY_ORDER - 1]; /* First coefficient is 1/log(10).  */
   double poly1[LOG10_POLY1_ORDER - 1];
-  struct {double invc, logc;} tab[1 << LOG10_TABLE_BITS];
+  struct
+  {
+    double invc, logc;
+  } tab[1 << LOG10_TABLE_BITS];
 #if !HAVE_FAST_FMA
-  struct {double chi, clo;} tab2[1 << LOG10_TABLE_BITS];
+  struct
+  {
+    double chi, clo;
+  } tab2[1 << LOG10_TABLE_BITS];
 #endif
 } __log10_data HIDDEN;
 
@@ -374,44 +449,28 @@ extern const struct exp_data
   double poly[4]; /* Last four coefficients.  */
   double exp2_shift;
   double exp2_poly[EXP2_POLY_ORDER];
-  uint64_t tab[2*(1 << EXP_TABLE_BITS)];
+  uint64_t tab[2 * (1 << EXP_TABLE_BITS)];
 } __exp_data HIDDEN;
 
-#define ERFC_NUM_INTERVALS 20
-#define ERFC_POLY_ORDER 12
+/* Copied from math/ for use in vector exp.  */
+#define V_EXP_TABLE_BITS 7
+extern const uint64_t __v_exp_data[1 << V_EXP_TABLE_BITS] HIDDEN;
+
+extern const struct erf_data
+{
+  struct
+  {
+    double erf, scale;
+  } tab[769];
+} __erf_data HIDDEN;
+
 extern const struct erfc_data
 {
-  double interval_bounds[ERFC_NUM_INTERVALS + 1];
-  double poly[ERFC_NUM_INTERVALS][ERFC_POLY_ORDER + 1];
+  struct
+  {
+    double erfc, scale;
+  } tab[3488];
 } __erfc_data HIDDEN;
-extern const struct v_erfc_data
-{
-  double interval_bounds[ERFC_NUM_INTERVALS + 1];
-  double poly[ERFC_NUM_INTERVALS + 1][ERFC_POLY_ORDER + 1];
-}  __v_erfc_data HIDDEN;
-
-#define ERFCF_POLY_NCOEFFS 16
-extern const struct erfcf_poly_data
-{
-  double poly[4][ERFCF_POLY_NCOEFFS];
-} __erfcf_poly_data HIDDEN;
-
-#define V_EXP_TAIL_TABLE_BITS 8
-extern const uint64_t __v_exp_tail_data[1 << V_EXP_TAIL_TABLE_BITS] HIDDEN;
-
-#define V_ERF_NINTS 49
-#define V_ERF_NCOEFFS 10
-extern const struct v_erf_data
-{
-  double shifts[V_ERF_NINTS];
-  double coeffs[V_ERF_NCOEFFS][V_ERF_NINTS];
-} __v_erf_data HIDDEN;
-
-#define V_ERFF_NCOEFFS 7
-extern const struct v_erff_data
-{
-  float coeffs[V_ERFF_NCOEFFS][2];
-} __v_erff_data HIDDEN;
 
 #define ATAN_POLY_NCOEFFS 20
 extern const struct atan_poly_data
@@ -465,7 +524,6 @@ extern const struct log1p_data
 } __log1p_data HIDDEN;
 
 #define LOG1PF_2U5
-#define V_LOG1PF_2U5
 #define LOG1PF_NCOEFFS 9
 extern const struct log1pf_data
 {
@@ -481,61 +539,18 @@ extern const struct tanf_poly_data
   float poly_cotan[TANF_Q_POLY_NCOEFFS];
 } __tanf_poly_data HIDDEN;
 
-#define V_LOG2F_POLY_NCOEFFS 9
-extern const struct v_log2f_data
+#define V_LOG_POLY_ORDER 6
+#define V_LOG_TABLE_BITS 7
+extern const struct v_log_data
 {
-  float poly[V_LOG2F_POLY_NCOEFFS];
-} __v_log2f_data HIDDEN;
-
-#define V_LOG2_TABLE_BITS 7
-#define V_LOG2_POLY_ORDER 6
-extern const struct v_log2_data
-{
-  double poly[V_LOG2_POLY_ORDER - 1];
+  /* Shared data for vector log and log-derived routines (e.g. asinh).  */
+  double poly[V_LOG_POLY_ORDER - 1];
+  double ln2;
   struct
   {
-    double invc, log2c;
-  } tab[1 << V_LOG2_TABLE_BITS];
-} __v_log2_data HIDDEN;
-
-#define V_SINF_NCOEFFS 4
-extern const struct sv_sinf_data
-{
-  float coeffs[V_SINF_NCOEFFS];
-} __sv_sinf_data HIDDEN;
-
-#define V_LOG10_TABLE_BITS 7
-#define V_LOG10_POLY_ORDER 6
-extern const struct v_log10_data
-{
-  struct
-  {
-    double invc, log10c;
-  } tab[1 << V_LOG10_TABLE_BITS];
-  double poly[V_LOG10_POLY_ORDER - 1];
-  double invln10, log10_2;
-} __v_log10_data HIDDEN;
-
-#define V_LOG10F_POLY_ORDER 9
-extern const float __v_log10f_poly[V_LOG10F_POLY_ORDER - 1] HIDDEN;
-
-#define SV_LOGF_POLY_ORDER 8
-extern const float __sv_logf_poly[SV_LOGF_POLY_ORDER - 1] HIDDEN;
-
-#define SV_LOG_POLY_ORDER 6
-#define SV_LOG_TABLE_BITS 7
-extern const struct sv_log_data
-{
-  double invc[1 << SV_LOG_TABLE_BITS];
-  double logc[1 << SV_LOG_TABLE_BITS];
-  double poly[SV_LOG_POLY_ORDER - 1];
-} __sv_log_data HIDDEN;
-
-#ifndef SV_EXPF_USE_FEXPA
-#define SV_EXPF_USE_FEXPA 0
-#endif
-#define SV_EXPF_POLY_ORDER 6
-extern const float __sv_expf_poly[SV_EXPF_POLY_ORDER - 1] HIDDEN;
+    double invc, logc;
+  } table[1 << V_LOG_TABLE_BITS];
+} __v_log_data HIDDEN;
 
 #define EXPM1F_POLY_ORDER 5
 extern const float __expm1f_poly[EXPM1F_POLY_ORDER] HIDDEN;
@@ -564,9 +579,10 @@ extern const struct cbrt_data
   double table[5];
 } __cbrt_data HIDDEN;
 
-extern const struct v_tan_data
-{
-  double neg_half_pi_hi, neg_half_pi_lo;
-  double poly[9];
-} __v_tan_data HIDDEN;
+#define ASINF_POLY_ORDER 4
+extern const float __asinf_poly[ASINF_POLY_ORDER + 1] HIDDEN;
+
+#define ASIN_POLY_ORDER 11
+extern const double __asin_poly[ASIN_POLY_ORDER + 1] HIDDEN;
+
 #endif

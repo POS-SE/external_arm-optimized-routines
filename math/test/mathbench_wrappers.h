@@ -1,17 +1,34 @@
 /*
  * Function wrappers for mathbench.
  *
- * Copyright (c) 2022, Arm Limited.
+ * Copyright (c) 2022-2024, Arm Limited.
  * SPDX-License-Identifier: MIT OR Apache-2.0 WITH LLVM-exception
  */
-#if WANT_VMATH
-#if __aarch64__
 
-#ifdef __vpcs
-__vpcs static v_float
-xy__vn_powf (v_float x)
+#if WANT_SIMD_TESTS
+
+__vpcs static v_double
+_Z_atan2_wrap (v_double x)
 {
-  return __vn_powf (x, x);
+  return _ZGVnN2vv_atan2 (v_double_dup (5.0), x);
+}
+
+__vpcs static v_float
+_Z_atan2f_wrap (v_float x)
+{
+  return _ZGVnN4vv_atan2f (v_float_dup (5.0f), x);
+}
+
+__vpcs static v_float
+_Z_hypotf_wrap (v_float x)
+{
+  return _ZGVnN4vv_hypotf (v_float_dup (5.0f), x);
+}
+
+__vpcs static v_double
+_Z_hypot_wrap (v_double x)
+{
+  return _ZGVnN2vv_hypot (v_double_dup (5.0), x);
 }
 
 __vpcs static v_float
@@ -20,10 +37,16 @@ xy_Z_powf (v_float x)
   return _ZGVnN4vv_powf (x, x);
 }
 
-__vpcs static v_double
-xy__vn_pow (v_double x)
+__vpcs static v_float
+x_Z_powf (v_float x)
 {
-  return __vn_pow (x, x);
+  return _ZGVnN4vv_powf (x, v_float_dup (23.4));
+}
+
+__vpcs static v_float
+y_Z_powf (v_float x)
+{
+  return _ZGVnN4vv_powf (v_float_dup (2.34), x);
 }
 
 __vpcs static v_double
@@ -31,33 +54,84 @@ xy_Z_pow (v_double x)
 {
   return _ZGVnN2vv_pow (x, x);
 }
-#endif // __vpcs
 
-static v_float
-xy__v_powf (v_float x)
+__vpcs static v_double
+x_Z_pow (v_double x)
 {
-  return __v_powf (x, x);
+  return _ZGVnN2vv_pow (x, v_double_dup (23.4));
 }
 
-static v_double
-xy__v_pow (v_double x)
+__vpcs static v_double
+y_Z_pow (v_double x)
 {
-  return __v_pow (x, x);
-}
-#endif // __aarch64__
-
-static float
-xy__s_powf (float x)
-{
-  return __s_powf (x, x);
+  return _ZGVnN2vv_pow (v_double_dup (2.34), x);
 }
 
-static double
-xy__s_pow (double x)
+#endif
+
+#if WANT_SVE_MATH
+
+static sv_float
+_Z_sv_atan2f_wrap (sv_float x, sv_bool pg)
 {
-  return __s_pow (x, x);
+  return _ZGVsMxvv_atan2f (x, svdup_f32 (5.0f), pg);
 }
-#endif // WANT_VMATH
+
+static sv_double
+_Z_sv_atan2_wrap (sv_double x, sv_bool pg)
+{
+  return _ZGVsMxvv_atan2 (x, svdup_f64 (5.0), pg);
+}
+
+static sv_float
+_Z_sv_hypotf_wrap (sv_float x, sv_bool pg)
+{
+  return _ZGVsMxvv_hypotf (x, svdup_f32 (5.0), pg);
+}
+
+static sv_double
+_Z_sv_hypot_wrap (sv_double x, sv_bool pg)
+{
+  return _ZGVsMxvv_hypot (x, svdup_f64 (5.0), pg);
+}
+
+static sv_float
+xy_Z_sv_powf (sv_float x, sv_bool pg)
+{
+  return _ZGVsMxvv_powf (x, x, pg);
+}
+
+static sv_float
+x_Z_sv_powf (sv_float x, sv_bool pg)
+{
+  return _ZGVsMxvv_powf (x, svdup_f32 (23.4f), pg);
+}
+
+static sv_float
+y_Z_sv_powf (sv_float x, sv_bool pg)
+{
+  return _ZGVsMxvv_powf (svdup_f32 (2.34f), x, pg);
+}
+
+static sv_double
+xy_Z_sv_pow (sv_double x, sv_bool pg)
+{
+  return _ZGVsMxvv_pow (x, x, pg);
+}
+
+static sv_double
+x_Z_sv_pow (sv_double x, sv_bool pg)
+{
+  return _ZGVsMxvv_pow (x, svdup_f64 (23.4), pg);
+}
+
+static sv_double
+y_Z_sv_pow (sv_double x, sv_bool pg)
+{
+  return _ZGVsMxvv_pow (svdup_f64 (2.34), x, pg);
+}
+
+#endif
 
 static double
 xypow (double x)

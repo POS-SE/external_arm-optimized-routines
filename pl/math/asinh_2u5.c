@@ -1,13 +1,13 @@
 /*
  * Double-precision asinh(x) function
  *
- * Copyright (c) 2022-2023, Arm Limited.
+ * Copyright (c) 2022-2024, Arm Limited.
  * SPDX-License-Identifier: MIT OR Apache-2.0 WITH LLVM-exception
  */
-#include "estrin.h"
+#include "poly_scalar_f64.h"
 #include "math_config.h"
-#include "pl_sig.h"
-#include "pl_test.h"
+#include "test_sig.h"
+#include "test_defs.h"
 
 #define AbsMask 0x7fffffffffffffff
 #define ExpM26 0x3e50000000000000 /* asuint64(0x1.0p-26).  */
@@ -60,8 +60,7 @@ asinh (double x)
       double z2 = x2 * x2;
       double z4 = z2 * z2;
       double z8 = z4 * z4;
-#define C(i) __asinh_data.poly[i]
-      double p = ESTRIN_17 (x2, z2, z4, z8, z8 * z8, C);
+      double p = estrin_17_f64 (x2, z2, z4, z8, z8 * z8, __asinh_data.poly);
       double y = fma (p, x2 * ax, ax);
       return asdouble (asuint64 (y) | sign);
     }
@@ -75,12 +74,12 @@ asinh (double x)
 		   | sign);
 }
 
-PL_SIG (S, D, 1, asinh, -10.0, 10.0)
-PL_TEST_ULP (asinh, 1.54)
-PL_TEST_INTERVAL (asinh, -0x1p-26, 0x1p-26, 50000)
-PL_TEST_INTERVAL (asinh, 0x1p-26, 1.0, 40000)
-PL_TEST_INTERVAL (asinh, -0x1p-26, -1.0, 10000)
-PL_TEST_INTERVAL (asinh, 1.0, 100.0, 40000)
-PL_TEST_INTERVAL (asinh, -1.0, -100.0, 10000)
-PL_TEST_INTERVAL (asinh, 100.0, inf, 50000)
-PL_TEST_INTERVAL (asinh, -100.0, -inf, 10000)
+TEST_SIG (S, D, 1, asinh, -10.0, 10.0)
+TEST_ULP (asinh, 1.54)
+TEST_INTERVAL (asinh, -0x1p-26, 0x1p-26, 50000)
+TEST_INTERVAL (asinh, 0x1p-26, 1.0, 40000)
+TEST_INTERVAL (asinh, -0x1p-26, -1.0, 10000)
+TEST_INTERVAL (asinh, 1.0, 100.0, 40000)
+TEST_INTERVAL (asinh, -1.0, -100.0, 10000)
+TEST_INTERVAL (asinh, 100.0, inf, 50000)
+TEST_INTERVAL (asinh, -100.0, -inf, 10000)

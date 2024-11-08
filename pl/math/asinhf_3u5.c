@@ -1,25 +1,20 @@
 /*
  * Single-precision asinh(x) function.
  *
- * Copyright (c) 2022-2023, Arm Limited.
+ * Copyright (c) 2022-2024, Arm Limited.
  * SPDX-License-Identifier: MIT OR Apache-2.0 WITH LLVM-exception
  */
 
-#include "estrinf.h"
+#include "poly_scalar_f32.h"
 #include "math_config.h"
-#include "pl_sig.h"
-#include "pl_test.h"
+#include "test_sig.h"
+#include "test_defs.h"
 
 #define AbsMask (0x7fffffff)
 #define SqrtFltMax (0x1.749e96p+10f)
 #define Ln2 (0x1.62e4p-1f)
 #define One (0x3f8)
 #define ExpM12 (0x398)
-
-#define C(i) __asinhf_data.coeffs[i]
-
-float
-optr_aor_log_f32 (float);
 
 /* asinhf approximation using a variety of approaches on different intervals:
 
@@ -57,22 +52,22 @@ asinhf (float x)
   if (ia12 < One)
     {
       float x2 = ax * ax;
-      float p = ESTRIN_7 (ax, x2, x2 * x2, C);
+      float p = estrin_7_f32 (ax, x2, x2 * x2, __asinhf_data.coeffs);
       float y = fmaf (x2, p, ax);
       return asfloat (asuint (y) | sign);
     }
 
   if (unlikely (ax > SqrtFltMax))
     {
-      return asfloat (asuint (optr_aor_log_f32 (ax) + Ln2) | sign);
+      return asfloat (asuint (logf (ax) + Ln2) | sign);
     }
 
-  return asfloat (asuint (optr_aor_log_f32 (ax + sqrtf (ax * ax + 1))) | sign);
+  return asfloat (asuint (logf (ax + sqrtf (ax * ax + 1))) | sign);
 }
 
-PL_SIG (S, F, 1, asinh, -10.0, 10.0)
-PL_TEST_ULP (asinhf, 2.9)
-PL_TEST_INTERVAL (asinhf, 0, 0x1p-12, 5000)
-PL_TEST_INTERVAL (asinhf, 0x1p-12, 1.0, 50000)
-PL_TEST_INTERVAL (asinhf, 1.0, 0x1p11, 50000)
-PL_TEST_INTERVAL (asinhf, 0x1p11, 0x1p127, 20000)
+TEST_SIG (S, F, 1, asinh, -10.0, 10.0)
+TEST_ULP (asinhf, 2.9)
+TEST_INTERVAL (asinhf, 0, 0x1p-12, 5000)
+TEST_INTERVAL (asinhf, 0x1p-12, 1.0, 50000)
+TEST_INTERVAL (asinhf, 1.0, 0x1p11, 50000)
+TEST_INTERVAL (asinhf, 0x1p11, 0x1p127, 20000)
